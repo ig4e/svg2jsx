@@ -8,10 +8,11 @@ import { optimize } from "svgo/browser";
 export interface ConversionOptions {
   typescript: boolean;
   memo: boolean;
-  quotes: "single" | "double";
   passProps: boolean;
   minify: boolean;
   removeIds: boolean;
+  // Import options
+  omitImports: boolean;
   // New export style options
   exportStyle: "const" | "default" | "named";
   exportName?: string;
@@ -115,14 +116,13 @@ function convertAttribute(
   options: ConversionOptions,
 ): string {
   const jsxName = attributeMap[name] || name;
-  const quote = options.quotes === "single" ? "'" : '"';
 
   // Handle className specifically
   if (name === "class") {
-    return `className=${quote}${value}${quote}`;
+    return `className={"${value}"}`;
   }
 
-  return `${jsxName}=${quote}${value}${quote}`;
+  return `${jsxName}={"${value}"}`;
 }
 
 // Default SVGO configuration for better optimization
@@ -196,7 +196,7 @@ async function formatCodeWithPrettier(
       tabWidth: 2,
       useTabs: false,
       semi: true,
-      singleQuote: options.quotes === "single",
+      singleQuote: false, // Default to double quotes, can be overridden by prettierConfig
       trailingComma: "es5" as const,
       bracketSpacing: true,
       arrowParens: "avoid" as const,
@@ -269,33 +269,27 @@ export async function convertSvgToJsx(
 
     // Convert attributes
     jsxContent = jsxContent.replace(
-      /(\w[\w-]*)\s*=\s*"([^"]*)"/g,
-      (match, name, value) => {
-        return convertAttribute(name, value, options);
-      },
-    );
-
-    jsxContent = jsxContent.replace(
-      /(\w[\w-]*)\s*=\s*'([^']*)'/g,
-      (match, name, value) => {
+      /(\w[\w-]*)\s*=\s*(["'])(.*?)\2/g,
+      (match, name, quote, value) => {
         return convertAttribute(name, value, options);
       },
     );
 
     // Step 3: Build the component
-    const quote = options.quotes === "single" ? "'" : '"';
     const imports = [];
 
-    if (options.typescript) {
-      imports.push("import React from 'react';");
-    }
+    if (!options.omitImports) {
+      if (options.typescript) {
+        imports.push("import React from 'react';");
+      }
 
-    if (options.memo) {
-      imports.push(
-        options.typescript
-          ? "import { memo } from 'react';"
-          : "import { memo } from 'react';",
-      );
+      if (options.memo) {
+        imports.push(
+          options.typescript
+            ? "import { memo } from 'react';"
+            : "import { memo } from 'react';",
+        );
+      }
     }
 
     const propsType = options.typescript

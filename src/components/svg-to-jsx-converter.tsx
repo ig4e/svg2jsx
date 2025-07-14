@@ -1,6 +1,6 @@
 "use client";
 
-import { Code2, Copy, Download } from "lucide-react";
+import { Check, Code2, Copy, Download } from "lucide-react";
 import { useEffect, useState } from "react";
 import { convertSvgToJsx, type ConversionOptions } from "~/lib/svg-to-jsx";
 import { ConfigurationPanel } from "./configuration-panel";
@@ -17,13 +17,16 @@ export function SvgToJsxConverter() {
   const [jsxOutput, setJsxOutput] = useState("");
   const [componentName, setComponentName] = useState("MyIcon");
   const [isConverting, setIsConverting] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [options, setOptions] = useState<ConversionOptions>({
     typescript: true,
     memo: true,
-    quotes: "double",
     passProps: true,
     minify: false,
     removeIds: false,
+    // Import options
+    omitImports: false,
     // New export style options
     exportStyle: "const",
     exportName: undefined,
@@ -100,6 +103,8 @@ export function SvgToJsxConverter() {
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(jsxOutput);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
     } catch (err) {
       console.error("Failed to copy text: ", err);
     }
@@ -113,6 +118,8 @@ export function SvgToJsxConverter() {
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
+    setDownloadSuccess(true);
+    setTimeout(() => setDownloadSuccess(false), 2000);
   };
 
   const outputLanguage = options.typescript ? "tsx" : "jsx";
@@ -133,22 +140,32 @@ export function SvgToJsxConverter() {
 
             <div className="flex items-center gap-2">
               <Button
-                variant="outline"
+                variant={copySuccess ? "default" : "outline"}
                 size="sm"
                 onClick={copyToClipboard}
                 disabled={!jsxOutput || isConverting}
+                className="transform transition-all duration-200 ease-in-out active:scale-95"
               >
-                <Copy className="h-4 w-4" />
-                Copy
+                {copySuccess ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+                {copySuccess ? "Copied!" : "Copy"}
               </Button>
               <Button
-                variant="outline"
+                variant={downloadSuccess ? "default" : "outline"}
                 size="sm"
                 onClick={downloadFile}
                 disabled={!jsxOutput || isConverting}
+                className="transform transition-all duration-200 ease-in-out active:scale-95"
               >
-                <Download className="h-4 w-4" />
-                Download
+                {downloadSuccess ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                {downloadSuccess ? "Downloaded!" : "Download"}
               </Button>
             </div>
           </div>

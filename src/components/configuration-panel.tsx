@@ -165,23 +165,6 @@ export function ConfigurationPanel({
                       />
                     </div>
                   </MenubarItem>
-                  <MenubarSeparator />
-                  <MenubarItem
-                    onClick={() =>
-                      setOptions((prev) => ({
-                        ...prev,
-                        quotes: prev.quotes === "single" ? "double" : "single",
-                      }))
-                    }
-                    className="cursor-pointer"
-                  >
-                    <div className="flex w-full items-center justify-between">
-                      <span>Quote Style</span>
-                      <Badge variant="outline" className="ml-2 text-xs">
-                        {options.quotes === "single" ? "Single" : "Double"}
-                      </Badge>
-                    </div>
-                  </MenubarItem>
                 </MenubarContent>
               </MenubarMenu>
 
@@ -222,6 +205,23 @@ export function ConfigurationPanel({
                       <span>Pass Props</span>
                       <Switch
                         checked={options.passProps}
+                        className="pointer-events-none ml-2"
+                      />
+                    </div>
+                  </MenubarItem>
+                  <MenubarItem
+                    onClick={() =>
+                      setOptions((prev) => ({
+                        ...prev,
+                        omitImports: !prev.omitImports,
+                      }))
+                    }
+                    className="cursor-pointer"
+                  >
+                    <div className="flex w-full items-center justify-between">
+                      <span>Omit Imports</span>
+                      <Switch
+                        checked={options.omitImports}
                         className="pointer-events-none ml-2"
                       />
                     </div>
@@ -346,6 +346,23 @@ export function ConfigurationPanel({
                           />
                         </div>
                         <div className="flex items-center justify-between">
+                          <Label className="text-sm">Single Quotes</Label>
+                          <Switch
+                            checked={
+                              options.prettierConfig?.singleQuote ?? false
+                            }
+                            onCheckedChange={(checked) =>
+                              setOptions((prev) => ({
+                                ...prev,
+                                prettierConfig: {
+                                  ...prev.prettierConfig,
+                                  singleQuote: checked,
+                                },
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
                           <Label className="text-sm">Semicolons</Label>
                           <Switch
                             checked={options.prettierConfig?.semi ?? true}
@@ -464,9 +481,6 @@ export function ConfigurationPanel({
                   : options.exportStyle === "default"
                     ? "default"
                     : "named"}
-              </Badge>
-              <Badge variant="outline" className="h-5 text-xs">
-                {options.quotes === "single" ? "'" : '"'}
               </Badge>
             </div>
           </div>
