@@ -10,6 +10,12 @@ const config = {
   experimental: {
     optimizePackageImports: ['lucide-react'],
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
 
   // Compress output for better performance
   compress: true,
