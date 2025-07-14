@@ -119,10 +119,10 @@ function convertAttribute(
 
   // Handle className specifically
   if (name === "class") {
-    return `className={"${value}"}`;
+    return `className="${value}"`;
   }
 
-  return `${jsxName}={"${value}"}`;
+  return `${jsxName}="${value}"`;
 }
 
 // Default SVGO configuration for better optimization
