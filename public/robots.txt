@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://svg2jsx.ahmedmohamed.dev/sitemap.xml
+
+# Crawl-delay
+Crawl-delay: 1 

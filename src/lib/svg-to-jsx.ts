@@ -1,9 +1,35 @@
+// @ts-ignore - SVGO browser bundle doesn't have perfect types
+import * as prettierPluginBabel from "prettier/plugins/babel";
+import * as prettierPluginEstree from "prettier/plugins/estree";
+import * as prettierPluginTypescript from "prettier/plugins/typescript";
+import * as prettier from "prettier/standalone";
+import { optimize } from "svgo/browser";
+
 export interface ConversionOptions {
   typescript: boolean;
   memo: boolean;
   quotes: "single" | "double";
   passProps: boolean;
   minify: boolean;
+  removeIds: boolean;
+  // New export style options
+  exportStyle: "const" | "default" | "named";
+  exportName?: string;
+  // SVGO options
+  optimizeSvg: boolean;
+  svgoConfig?: Record<string, any>;
+  // Prettier options
+  useFormatter: boolean;
+  prettierConfig?: {
+    printWidth?: number;
+    tabWidth?: number;
+    useTabs?: boolean;
+    semi?: boolean;
+    singleQuote?: boolean;
+    trailingComma?: "none" | "es5" | "all";
+    bracketSpacing?: boolean;
+    arrowParens?: "avoid" | "always";
+  };
 }
 
 // HTML attributes that need to be converted to camelCase for JSX
@@ -99,22 +125,136 @@ function convertAttribute(
   return `${jsxName}=${quote}${value}${quote}`;
 }
 
+// Default SVGO configuration for better optimization
+const defaultSvgoConfig = {
+  plugins: [
+    {
+      name: "preset-default",
+      params: {
+        overrides: {
+          // Keep viewBox for responsive scaling
+          removeViewBox: false,
+          // Keep IDs if they're referenced
+          cleanupIds: {
+            preservePrefixes: ["icon-", "gradient-", "pattern-"],
+          },
+        },
+      },
+    },
+    // Remove unnecessary elements
+    "removeXMLNS",
+    "removeDimensions",
+    // Optimize paths
+    "convertPathData",
+    // Minify styles
+    "minifyStyles",
+    // Clean up attributes
+    "removeUselessStrokeAndFill",
+    "removeUnknownsAndDefaults",
+  ],
+};
+
+// Apply SVGO optimization to SVG content
+async function optimizeSvgContent(
+  svgContent: string,
+  options: ConversionOptions,
+): Promise<string> {
+  if (!options.optimizeSvg) {
+    return svgContent;
+  }
+
+  try {
+    const svgoConfig: any = {
+      ...defaultSvgoConfig,
+      ...options.svgoConfig,
+    };
+
+    const result = optimize(svgContent, svgoConfig);
+    return typeof result === "string" ? result : result.data;
+  } catch (error) {
+    console.warn("SVGO optimization failed:", error);
+    return svgContent;
+  }
+}
+
+// Format code using Prettier
+async function formatCodeWithPrettier(
+  code: string,
+  options: ConversionOptions,
+): Promise<string> {
+  if (!options.useFormatter || options.minify) {
+    return code;
+  }
+
+  try {
+    const prettierOptions: any = {
+      parser: options.typescript ? "typescript" : "babel",
+      plugins: options.typescript
+        ? [prettierPluginTypescript, prettierPluginEstree]
+        : [prettierPluginBabel, prettierPluginEstree],
+      printWidth: 80,
+      tabWidth: 2,
+      useTabs: false,
+      semi: true,
+      singleQuote: options.quotes === "single",
+      trailingComma: "es5" as const,
+      bracketSpacing: true,
+      arrowParens: "avoid" as const,
+      ...options.prettierConfig,
+    };
+
+    const formatted = await prettier.format(code, prettierOptions);
+    return formatted;
+  } catch (error) {
+    console.warn("Prettier formatting failed:", error);
+    return code;
+  }
+}
+
+// Generate the appropriate export statement
+function generateExport(
+  componentName: string,
+  componentCode: string,
+  options: ConversionOptions,
+): string {
+  const exportName = options.exportName || componentName;
+
+  switch (options.exportStyle) {
+    case "default":
+      return `export default ${componentCode};`;
+    case "named":
+      // For named exports, we need to first define the component, then export it
+      return `const ${componentName} = ${componentCode};\n\nexport { ${componentName} as ${exportName} };`;
+    case "const":
+    default:
+      return `export const ${exportName} = ${componentCode};`;
+  }
+}
+
 // Parse SVG and convert to JSX
-export function convertSvgToJsx(
+export async function convertSvgToJsx(
   svgContent: string,
   componentName: string,
   options: ConversionOptions,
-): string {
+): Promise<string> {
   if (!svgContent.trim()) {
     return "";
   }
 
   try {
-    // Basic SVG to JSX conversion
-    let jsxContent = svgContent;
+    // Step 1: Optimize SVG with SVGO if enabled
+    let optimizedSvg = await optimizeSvgContent(svgContent, options);
+
+    // Step 2: Basic SVG to JSX conversion
+    let jsxContent = optimizedSvg;
 
     // Convert HTML comments to JSX comments
     jsxContent = jsxContent.replace(/<!--([\s\S]*?)-->/g, "{/* $1 */}");
+
+    // Remove IDs if requested (and not already handled by SVGO)
+    if (options.removeIds && !options.optimizeSvg) {
+      jsxContent = jsxContent.replace(/\s+id\s*=\s*["'][^"']*["']/g, "");
+    }
 
     // Convert self-closing tags that aren't properly closed
     jsxContent = jsxContent.replace(
@@ -142,7 +282,7 @@ export function convertSvgToJsx(
       },
     );
 
-    // Build the component
+    // Step 3: Build the component
     const quote = options.quotes === "single" ? "'" : '"';
     const imports = [];
 
@@ -174,33 +314,42 @@ export function convertSvgToJsx(
 
     // Add props spreading if enabled
     if (options.passProps) {
-      svgAttributes = svgAttributes.trim();
+      svgAttributes = svgAttributes?.trim();
       if (svgAttributes && !svgAttributes.endsWith(" ")) {
         svgAttributes += " ";
       }
       svgAttributes += "{...props}";
     }
 
-    // Build the final component
-    let component = `export const ${componentName} = ${memoStart}(props${propsType}) => {
+    // Build the component function
+    const componentFunction = `${memoStart}(props${propsType}) => {
   return (
     <svg${svgAttributes ? ` ${svgAttributes}` : ""}>
 ${svgChildren}
     </svg>
   );
-}${memoEnd};`;
+}${memoEnd}`;
 
-    // Add imports
-    const finalCode =
-      imports.length > 0 ? `${imports.join("\n")}\n\n${component}` : component;
+    // Generate the export
+    const exportStatement = generateExport(
+      componentName,
+      componentFunction,
+      options,
+    );
 
-    // Minify if requested
-    if (options.minify) {
-      return finalCode
-        .replace(/\n\s*/g, " ")
-        .replace(/\s+/g, " ")
-        .replace(/;\s*}/g, "}")
-        .trim();
+    // Combine everything
+    let finalCode =
+      imports.length > 0
+        ? `${imports.join("\n")}\n\n${exportStatement}`
+        : exportStatement;
+
+    // Step 4: Apply formatting
+    if (options.useFormatter && !options.minify) {
+      finalCode = await formatCodeWithPrettier(finalCode, options);
+    } else if (!options.useFormatter && !options.minify) {
+      finalCode = formatCode(finalCode, options);
+    } else if (options.minify) {
+      finalCode = minifyCode(finalCode);
     }
 
     return finalCode;
@@ -241,18 +390,69 @@ function isVoidElement(tagName: string): boolean {
   return voidElements.includes(tagName.toLowerCase());
 }
 
-// Prettier formatting function (basic implementation)
+// Enhanced formatting function
 export function formatCode(code: string, options: ConversionOptions): string {
   if (options.minify) {
-    return code;
+    return minifyCode(code);
   }
 
-  // Basic formatting - in a real implementation, you might want to use prettier
   let formatted = code;
 
-  // Add proper indentation
-  formatted = formatted.replace(/^/gm, "  ");
-  formatted = formatted.replace(/^  (import|export)/gm, "$1");
+  // Normalize line endings and clean up
+  formatted = formatted.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 
-  return formatted;
+  // Split into lines for processing
+  const lines = formatted.split("\n");
+  const formattedLines: string[] = [];
+  let indentLevel = 0;
+  const indentSize = 2;
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+
+    if (!trimmedLine) {
+      formattedLines.push("");
+      continue;
+    }
+
+    // Decrease indent for closing tags and brackets
+    if (
+      trimmedLine.startsWith("</") ||
+      trimmedLine.startsWith("})") ||
+      trimmedLine === "}" ||
+      trimmedLine === "});"
+    ) {
+      indentLevel = Math.max(0, indentLevel - 1);
+    }
+
+    // Add the line with proper indentation
+    const indent = " ".repeat(indentLevel * indentSize);
+    formattedLines.push(indent + trimmedLine);
+
+    // Increase indent for opening tags and brackets
+    if (
+      (trimmedLine.includes("<") &&
+        !trimmedLine.includes("</") &&
+        !trimmedLine.endsWith("/>")) ||
+      trimmedLine.endsWith("{") ||
+      trimmedLine.endsWith("=> {")
+    ) {
+      indentLevel++;
+    }
+  }
+
+  return formattedLines.join("\n");
+}
+
+// Minify code function
+function minifyCode(code: string): string {
+  return code
+    .replace(/\n\s*/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/;\s*}/g, "}")
+    .replace(/\s*{\s*/g, "{")
+    .replace(/\s*}\s*/g, "}")
+    .replace(/\s*=\s*/g, "=")
+    .replace(/\s*,\s*/g, ",")
+    .trim();
 }

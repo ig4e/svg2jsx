@@ -197,3 +197,46 @@ code[class*="language-"] {
 .token.italic {
   @apply italic;
 }
+
+/* Custom Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+  background: var(--color-background);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-muted);
+  border-radius: 8px;
+  border: 2px solid var(--color-background);
+  min-height: 40px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
+}
+::-webkit-scrollbar-corner {
+  background: var(--color-background);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-muted) var(--color-background);
+}
+
+.dark ::-webkit-scrollbar {
+  background: var(--color-background);
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--color-muted);
+  border: 2px solid var(--color-background);
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
+}
+.dark ::-webkit-scrollbar-corner {
+  background: var(--color-background);
+}
+
+.dark * {
+  scrollbar-color: var(--color-muted) var(--color-background);
+}

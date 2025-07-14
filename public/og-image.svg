@@ -1,0 +1,38 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#000000"/>
+  
+  <!-- Grid pattern -->
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#333333" stroke-width="1" opacity="0.3"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+  
+  <!-- Main title -->
+  <text x="600" y="280" font-family="Arial, sans-serif" font-size="72" font-weight="bold" fill="#ffffff" text-anchor="middle">
+    SVG to JSX Converter
+  </text>
+  
+  <!-- Subtitle -->
+  <text x="600" y="340" font-family="Arial, sans-serif" font-size="32" fill="#888888" text-anchor="middle">
+    Free Online Tool for React Developers
+  </text>
+  
+  <!-- Features -->
+  <text x="600" y="420" font-family="Arial, sans-serif" font-size="24" fill="#666666" text-anchor="middle">
+    SVGO Optimization • TypeScript Support • Prettier Formatting
+  </text>
+  
+  <!-- URL -->
+  <text x="600" y="520" font-family="Arial, sans-serif" font-size="28" fill="#ffffff" text-anchor="middle">
+    svg2jsx.ahmedmohamed.dev
+  </text>
+  
+  <!-- Decorative elements -->
+  <circle cx="200" cy="150" r="60" fill="#333333" opacity="0.5"/>
+  <circle cx="1000" cy="480" r="80" fill="#333333" opacity="0.3"/>
+  <rect x="100" y="500" width="120" height="8" fill="#444444" opacity="0.6"/>
+  <rect x="980" y="100" width="140" height="8" fill="#444444" opacity="0.6"/>
+</svg> 

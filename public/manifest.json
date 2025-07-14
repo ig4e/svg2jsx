@@ -1,0 +1,27 @@
+{
+  "name": "SVG to JSX Converter",
+  "short_name": "SVG2JSX",
+  "description": "Free online tool to convert SVG code to React JSX components",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["developer", "productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Convert SVG",
+      "short_name": "Convert",
+      "description": "Start converting SVG to JSX",
+      "url": "/",
+      "icons": [{ "src": "/favicon.ico", "sizes": "any" }]
+    }
+  ]
+}
